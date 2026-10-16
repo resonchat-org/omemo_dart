@@ -75,3 +75,10 @@ This version is a complete rework of omemo_dart!
 ## 0.6.0
 
 - Bump dependencies to fix running with never version of Dart
+- [BREAKING] Remove the pure-Dart classic OMEMO stack (Double Ratchet, X3DH, TrustManager, protobuf `OmemoManager`)
+- Split the package into shared primitives (`omemo_dart.dart`) plus protocol entry points:
+  - `omemo_dart_axolotl.dart`: Conversations / XEP-0384 0.3.0 (`AxolotlOmemoManager`, AES-128-GCM auth-tag-in-key)
+  - `omemo_dart_omemo2.dart`: monocles PQ-OMEMO2 (`Omemo2Manager`, native libsignal PQXDH + SessionCipher + SPQR, ML-KEM-1024 `0x0A`)
+- Both managers share the same XMPP-agnostic boundary (`onOutgoingStanza` / `onIncomingStanza` + fetch callbacks)
+- `generateRandomOmemoId` never returns 0 (`1 … 2³¹−1`)
+- Cover Axolotl/OMEMO2 managers, `canSend`, KEM tag, and payload seal in package tests

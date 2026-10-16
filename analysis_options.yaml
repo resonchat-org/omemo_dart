@@ -9,5 +9,4 @@ linter:
 
 analyzer:
   exclude:
-    - "lib/src/protobuf/*.dart"
     - "example/omemo_dart_example.dart"

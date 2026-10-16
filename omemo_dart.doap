@@ -16,8 +16,8 @@
     <os>iOS</os>
 
     <!-- Description -->
-    <shortdesc xml:lang="de">A Dart implementation of the cryptography needed for OMEMO 0.8.3</shortdesc>
-    <description xml:lang="en">omemo_dart is a pure Dart implementation of the low-level components (X3DH, Double Ratchet) with a high-level library-agnostic interface for implementing OMEMO 0.8.3.</description>
+    <shortdesc xml:lang="en">XMPP-agnostic Axolotl and monocles OMEMO2 helpers for Dart</shortdesc>
+    <description xml:lang="en">omemo_dart provides library-agnostic managers for Conversations axolotl (OMEMO 0.3.0) and monocles PQ-OMEMO2 (native libsignal PQXDH + SessionCipher + SPQR).</description>
 
     <!-- Maintainer information -->
     <maintainer>
@@ -46,7 +46,7 @@
       <xmpp:SupportedXep>
         <xmpp:xep rdf:resource="https://xmpp.org/extensions/xep-0384.html"/>
         <xmpp:status>partial</xmpp:status>
-        <xmpp:version>0.8.3</xmpp:version>
+        <xmpp:version>0.3.0</xmpp:version>
       </xmpp:SupportedXep>
     </implements>
   </Project>

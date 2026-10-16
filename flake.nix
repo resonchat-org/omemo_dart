@@ -35,7 +35,6 @@
         flutter pinnedJDK android.platform-tools dart # Flutter/Android
 	      gitlint jq # Code hygiene
 	      ripgrep # General utilities
-        protobuf
       ];
       ANDROID_HOME = "${android.androidsdk}/libexec/android-sdk";
       JAVA_HOME = pinnedJDK;
