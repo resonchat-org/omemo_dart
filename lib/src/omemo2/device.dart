@@ -9,6 +9,7 @@ import 'package:omemo_dart/src/common/keys.dart';
 import 'package:omemo_dart/src/omemo2/address.dart';
 import 'package:omemo_dart/src/omemo2/bootstrap.dart';
 import 'package:omemo_dart/src/omemo2/bundle.dart';
+import 'package:omemo_dart/src/omemo2/bundle_transcript.dart';
 import 'package:omemo_dart/src/omemo2/constants.dart';
 import 'package:omemo_dart/src/omemo2/kem_tag.dart';
 
@@ -291,6 +292,80 @@ class Omemo2Device {
     await omemo2EnsureLibSignal();
     final ikPriv = Uint8List.fromList(await ikDh.sk.getBytes());
     return _identityFromPrivate(ikPriv).sign(message: message);
+  }
+
+  /// Transcript signed by ML-DSA (`<pq-sig>`) and this device's classical IK
+  /// (`<ik-sig>`) when publishing a bundle. [pqIdentityKey] is the raw
+  /// ML-DSA-87 verification key; the app holds that key.
+  Future<Uint8List> identityTranscript(Uint8List pqIdentityKey) async {
+    await omemo2EnsureLibSignal();
+    final ik = await identityPublicSerialized();
+    final spkRaw = await spk.pk.getBytes();
+    final kemSpkTagged = serializeMlKem1024PublicKey(pqSpk);
+    final binding = omemo2KemBinding(
+      kemSignedPreKeyId: pqSpkId,
+      kemSignedPreKeyPublic: kemSpkTagged,
+      oneTime: [
+        for (final e in pqOpks.entries)
+          (
+            id: e.key,
+            publicKey: serializeMlKem1024PublicKey(e.value.publicRaw),
+          ),
+      ],
+    );
+    return omemo2BundleTranscript(
+      identityKey: ik,
+      pqIdentityKey: pqIdentityKey,
+      signedPreKeyId: spkId,
+      signedPreKeyPublic: Uint8List.fromList([0x05, ...spkRaw]),
+      kemBinding: binding,
+    );
+  }
+
+  /// Generate one ML-KEM one-time prekey, sign it, and keep it on this device.
+  Future<Omemo2KyberPreKey> generateSignedPqOpk(int id) async {
+    await omemo2EnsureLibSignal();
+    final kp = ls.KyberKeyPair.generate();
+    final pubTagged = kp.getPublicKey().serialize();
+    final skTagged = kp.getSecretKey().serialize();
+    final key = Omemo2KyberPreKey(
+      publicRaw: pubTagged.sublist(1),
+      secretRaw: skTagged.sublist(1),
+      signature: await sign(pubTagged),
+    );
+    pqOpks[id] = key;
+    if (_storesReady) {
+      await _storeKyber(id, key.publicRaw, key.secretRaw, key.signature);
+    }
+    return key;
+  }
+
+  Future<void> _storeKyber(
+    int kid,
+    Uint8List pub,
+    Uint8List secret,
+    Uint8List sig,
+  ) async {
+    final ts = BigInt.from(DateTime.now().millisecondsSinceEpoch);
+    final pubKey = ls.KyberPublicKey.deserialize(
+      bytes: serializeMlKem1024PublicKey(pub),
+    );
+    final secretKey = ls.KyberSecretKey.deserialize(
+      bytes: Uint8List.fromList([omemo2MlKem1024Tag, ...secret]),
+    );
+    final pair = ls.KyberKeyPair.fromKeys(
+      publicKey: pubKey,
+      secretKey: secretKey,
+    );
+    await _kyberPreKeyStore.storeKyberPreKey(
+      kid,
+      ls.KyberPreKeyRecord.create(
+        id: kid,
+        timestamp: ts,
+        keyPair: pair,
+        signature: sig,
+      ),
+    );
   }
 
   /// Classical identity as libsignal `IdentityKey.serialize()` (33 bytes,

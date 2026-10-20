@@ -16,7 +16,7 @@ dependencies:
   # Native PQXDH + SessionCipher + SPQR (AGPL-3.0). Path fork enables
   # ML-KEM-1024 (0x0A) for monocles OMEMO2.
   libsignal:
-    path: ../libsignal_dart
+    path: ./vendor/libsignal_dart
   # Classical Axolotl / X3DH helpers (Dart).
   libsignal_protocol_dart: ^0.8.2
   logging: ^1.2.0
@@ -25,6 +25,8 @@ dependencies:
     path: ../moxlib
   path: ^1.9.0
   pinenacl: ^0.6.0
+  # SHA3-512 for the OMEMO2 hybrid fingerprint (monocles uses BouncyCastle).
+  pointycastle: ^4.0.0
   synchronized: ^3.3.0+3
 
 dev_dependencies:

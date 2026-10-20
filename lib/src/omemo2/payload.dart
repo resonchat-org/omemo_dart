@@ -10,6 +10,9 @@ const String omemo2PayloadKmacLabel = 'monocles:omemo2:payload:v3';
 /// KMAC customization for key commitment (proto-XEP §5.5).
 const String omemo2CommitKmacLabel = 'monocles:omemo2:key-commitment:v3';
 
+/// ML-DSA-87 FIPS-204 context for `<pq-sig>` (proto-XEP §4.9).
+const String omemo2PqIdContext = 'monocles:omemo2:pqid:v1';
+
 /// Context binding for OMEMO2 payload AEAD (sender ‖ recipient ‖ device).
 Uint8List omemo2ContextBinding({
   required String senderBareJid,

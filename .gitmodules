@@ -1,0 +1,3 @@
+[submodule "vendor/libsignal_dart"]
+	path = vendor/libsignal_dart
+	url = https://github.com/resonchat-org/libsignal_dart

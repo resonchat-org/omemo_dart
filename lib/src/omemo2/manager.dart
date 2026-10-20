@@ -12,6 +12,7 @@ import 'package:omemo_dart/src/omemo2/bundle.dart';
 import 'package:omemo_dart/src/omemo2/decryption_result.dart';
 import 'package:omemo_dart/src/omemo2/device.dart';
 import 'package:omemo_dart/src/omemo2/encrypted_key.dart';
+import 'package:omemo_dart/src/omemo2/establish.dart';
 import 'package:omemo_dart/src/omemo2/encryption_result.dart';
 import 'package:omemo_dart/src/omemo2/payload.dart';
 import 'package:omemo_dart/src/omemo2/stanza.dart';
@@ -279,71 +280,6 @@ class Omemo2Manager {
     });
   }
 
-  Future<void> _processBundle(Omemo2PreKeyBundle bundle) async {
-    var preKeyBundle = ls.PreKeyBundle(
-      registrationId: 0,
-      deviceId: 1,
-      preKeyId: bundle.preKeyId,
-      preKeyPublic: bundle.preKeyPublicTagged,
-      signedPreKeyId: bundle.signedPreKeyId,
-      signedPreKeyPublic: bundle.signedPreKeyPublicTagged,
-      signedPreKeySignature: bundle.signedPreKeySignature,
-      identityKey: bundle.identityPublicTagged,
-      kyberPreKeyId: bundle.kyberPreKeyId,
-      kyberPreKeyPublic: bundle.kyberPreKeyPublicTagged,
-      kyberPreKeySignature: bundle.kyberPreKeySignature,
-    );
-
-    // monocles never-downgrade: OMEMO2 sessions require a verified hybrid
-    // identity (pq-ik + pq-sig + ik-sig). ML-DSA-87 is re-checked inside
-    // process_prekey_bundle; classical ik-sig is checked here.
-    if (!bundle.hasPqIdentity) {
-      throw StateError(
-        'OMEMO2 bundle for ${bundle.jid}/${bundle.deviceId} has no usable '
-        'PQ identity (pq-ik/pq-sig/ik-sig) — refusing session',
-      );
-    }
-    final kemBinding = ls.pqKemBinding(
-      kemSignedPreKeyId: bundle.kemSignedPreKeyId,
-      kemSignedPreKeyPublic: bundle.kemSignedPreKeyPublicTagged,
-      oneTime: [
-        for (final k in bundle.kemOneTimeKeys)
-          ls.KemOneTimeKey(id: k.id, publicKey: k.publicTagged),
-      ],
-    );
-    final transcript = ls.pqBundleTranscript(
-      identityKey: bundle.identityPublicTagged,
-      pqIdentityKey: bundle.pqIdentityKey!,
-      signedPreKeyId: bundle.signedPreKeyId,
-      signedPreKeyPublic: bundle.signedPreKeyPublicTagged,
-      kemBinding: kemBinding,
-    );
-    final ikOk =
-        ls.PublicKey.deserialize(
-          bytes: bundle.identityPublicTagged.toList(),
-        ).verify(
-          message: transcript.toList(),
-          signature: bundle.ikSignature!.toList(),
-        );
-    if (!ikOk) {
-      throw StateError(
-        'OMEMO2 bundle for ${bundle.jid}/${bundle.deviceId} has invalid ik-sig',
-      );
-    }
-    preKeyBundle = preKeyBundle.withPqIdentity(
-      pqIdentityKey: bundle.pqIdentityKey!,
-      pqSignature: bundle.pqSignature!,
-      kemBinding: kemBinding,
-    );
-
-    final builder = ls.SessionBuilder(
-      localAddress: _device.localAddress,
-      sessionStore: _device.sessionStore,
-      identityKeyStore: _device.identityStore,
-    );
-    await builder.processPreKeyBundle(
-      omemo2ProtocolAddress(bundle.jid, bundle.deviceId),
-      preKeyBundle,
-    );
-  }
+  Future<void> _processBundle(Omemo2PreKeyBundle bundle) =>
+      omemo2EstablishSession(_device, bundle);
 }
