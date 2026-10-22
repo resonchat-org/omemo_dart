@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
 import 'package:omemo_dart/omemo_dart_axolotl.dart';
 import 'package:test/test.dart';
 
@@ -126,5 +128,31 @@ void main() {
     final restored = await AxolotlDevice.fromSnapshot(snap);
     expect(await restored.deviceId, await device.deviceId);
     expect(await restored.fingerprint, await device.fingerprint);
+  });
+
+  test('device snapshot roundtrip keeps session records', () async {
+    final device = await AxolotlDevice.generateNewDevice(
+      'a@b.c',
+      preKeyCount: 1,
+    );
+    const peer = 'peer@b.c';
+    final record = Uint8List.fromList([9, 8, 7, 6]);
+    device.store.sessionStore.sessions[SignalProtocolAddress(peer, 7)] = record;
+    final snap = await device.snapshot(
+      device.store.preKeyStore.store.keys.toList(),
+    );
+    final restored = await AxolotlDevice.fromSnapshot(
+      AxolotlDeviceSnapshot.fromJson(snap.toJson()),
+    );
+    expect(
+      restored.store.sessionStore.sessions[SignalProtocolAddress(peer, 7)],
+      record,
+    );
+    expect(
+      AxolotlDeviceSnapshot.fromJson(
+        jsonDecode(jsonEncode(snap.toJson())) as Map<String, dynamic>,
+      ).sessions.single.deviceId,
+      7,
+    );
   });
 }

@@ -108,8 +108,11 @@ class AxolotlDevice {
     return newId;
   }
 
-  /// Snapshot for persistence (identity + registration + signed prekey +
-  /// listed one-time prekeys). Session records are stored separately.
+  /// Snapshot for persistence: identity, prekeys, and every [SessionRecord].
+  ///
+  /// Conversations writes the session inside `storeSession` (encrypt and
+  /// decrypt) and only drops the table in `wipeAxolotlDb`. The records travel
+  /// with this snapshot so one commit keeps the same lifecycle.
   Future<AxolotlDeviceSnapshot> snapshot(List<int> preKeyIds) async {
     final identity = await identityKeyPair;
     final regId = await deviceId;
@@ -128,6 +131,14 @@ class AxolotlDevice {
       signedPreKeyId: signedPreKeyId,
       signedPreKeyRecord: signed.serialize().toList(),
       preKeyRecords: preKeys,
+      sessions: [
+        for (final entry in store.sessionStore.sessions.entries)
+          AxolotlStoredSession(
+            name: entry.key.getName(),
+            deviceId: entry.key.getDeviceId(),
+            record: entry.value.toList(),
+          ),
+      ],
     );
   }
 
@@ -145,6 +156,14 @@ class AxolotlDevice {
       final record = PreKeyRecord.fromBuffer(Uint8List.fromList(entry.value));
       await store.storePreKey(entry.key, record);
     }
+    for (final session in snap.sessions) {
+      store.sessionStore.sessions[SignalProtocolAddress(
+        session.name,
+        session.deviceId,
+      )] = Uint8List.fromList(
+        session.record,
+      );
+    }
     return AxolotlDevice(
       jid: snap.jid,
       store: store,
@@ -153,7 +172,21 @@ class AxolotlDevice {
   }
 }
 
-/// Serializable device key material (no active sessions).
+/// One persisted libsignal [SessionRecord] (peer JID + device id).
+@immutable
+class AxolotlStoredSession {
+  const AxolotlStoredSession({
+    required this.name,
+    required this.deviceId,
+    required this.record,
+  });
+
+  final String name;
+  final int deviceId;
+  final List<int> record;
+}
+
+/// Serializable device key material, including active sessions.
 @immutable
 class AxolotlDeviceSnapshot {
   const AxolotlDeviceSnapshot({
@@ -164,6 +197,7 @@ class AxolotlDeviceSnapshot {
     required this.signedPreKeyId,
     required this.signedPreKeyRecord,
     required this.preKeyRecords,
+    this.sessions = const [],
   });
 
   factory AxolotlDeviceSnapshot.fromJson(Map<String, dynamic> json) {
@@ -171,6 +205,24 @@ class AxolotlDeviceSnapshot {
     final raw = json['preKeyRecords'] as Map<String, dynamic>? ?? {};
     for (final e in raw.entries) {
       pre[int.parse(e.key)] = base64Decode(e.value as String);
+    }
+    final sessions = <AxolotlStoredSession>[];
+    final rawSessions = json['sessions'];
+    if (rawSessions is List) {
+      for (final item in rawSessions) {
+        if (item is! Map) continue;
+        final name = item['name'];
+        final deviceId = item['deviceId'];
+        final record = item['record'];
+        if (name is! String || deviceId is! int || record is! String) continue;
+        sessions.add(
+          AxolotlStoredSession(
+            name: name,
+            deviceId: deviceId,
+            record: base64Decode(record),
+          ),
+        );
+      }
     }
     return AxolotlDeviceSnapshot(
       jid: json['jid'] as String,
@@ -180,6 +232,7 @@ class AxolotlDeviceSnapshot {
       signedPreKeyId: json['signedPreKeyId'] as int,
       signedPreKeyRecord: base64Decode(json['signedPreKeyRecord'] as String),
       preKeyRecords: pre,
+      sessions: sessions,
     );
   }
 
@@ -191,6 +244,10 @@ class AxolotlDeviceSnapshot {
   final List<int> signedPreKeyRecord;
   final Map<int, List<int>> preKeyRecords;
 
+  /// Ratchet state per remote device. Empty on blobs written before sessions
+  /// were included; those devices rebuild a session from the next bundle.
+  final List<AxolotlStoredSession> sessions;
+
   Map<String, dynamic> toJson() => {
     'jid': jid,
     'registrationId': registrationId,
@@ -201,5 +258,13 @@ class AxolotlDeviceSnapshot {
     'preKeyRecords': {
       for (final e in preKeyRecords.entries) '${e.key}': base64Encode(e.value),
     },
+    'sessions': [
+      for (final s in sessions)
+        {
+          'name': s.name,
+          'deviceId': s.deviceId,
+          'record': base64Encode(s.record),
+        },
+    ],
   };
 }

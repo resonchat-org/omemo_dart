@@ -83,6 +83,10 @@ class Omemo2Device {
   ls.ProtocolAddress? _localAddress;
   bool _storesReady = false;
 
+  /// Session blobs from a snapshot, applied once [ensureStores] builds the
+  /// libsignal store. Empty after that import.
+  List<Omemo2StoredSession> _restoredSessions = const [];
+
   ls.ProtocolAddress get localAddress =>
       _localAddress ?? omemo2ProtocolAddress(jid, id);
 
@@ -241,6 +245,13 @@ class Omemo2Device {
         e.value.signature,
       );
     }
+    if (_restoredSessions.isNotEmpty) {
+      _sessionStore.importRecords({
+        for (final s in _restoredSessions)
+          '${s.name}:${s.deviceId}': base64Decode(s.record),
+      });
+      _restoredSessions = const [];
+    }
     _storesReady = true;
   }
 
@@ -377,7 +388,11 @@ class Omemo2Device {
     return _identityFromPrivate(ikPriv).publicKey;
   }
 
-  /// Persistable key material (no session ratchet state).
+  /// Persistable key material plus every libsignal session record.
+  ///
+  /// Sessions are empty until [ensureStores] has run. A restart restores them
+  /// into the store from this snapshot; wiping the sealed blob (regenerate)
+  /// drops them. A peer device leaving the announced list does not.
   Future<Omemo2DeviceSnapshot> snapshot() async {
     Future<Map<String, String>> keyPairJson(OmemoKeyPair kp) async => {
       'type': kp.type.name,
@@ -408,7 +423,26 @@ class Omemo2Device {
             'sig': base64Encode(e.value.signature),
           },
       },
+      sessions: _storesReady ? _exportSessions() : const [],
     );
+  }
+
+  List<Omemo2StoredSession> _exportSessions() {
+    final out = <Omemo2StoredSession>[];
+    for (final entry in _sessionStore.exportRecords().entries) {
+      final split = entry.key.lastIndexOf(':');
+      if (split <= 0) continue;
+      final deviceId = int.tryParse(entry.key.substring(split + 1));
+      if (deviceId == null) continue;
+      out.add(
+        Omemo2StoredSession(
+          name: entry.key.substring(0, split),
+          deviceId: deviceId,
+          record: base64Encode(entry.value),
+        ),
+      );
+    }
+    return out;
   }
 
   /// Restore from [Omemo2DeviceSnapshot]. Call [ensureStores] before crypto use.
@@ -438,7 +472,7 @@ class Omemo2Device {
       );
     }
 
-    return Omemo2Device(
+    final device = Omemo2Device(
       jid: snap.jid,
       id: snap.id,
       ikEd: keyPair(snap.ikEd),
@@ -453,10 +487,28 @@ class Omemo2Device {
       opks: opks,
       pqOpks: pqOpks,
     );
+    device._restoredSessions = snap.sessions;
+    return device;
   }
 }
 
-/// Serializable OMEMO2 device key material (no active sessions).
+/// One persisted OMEMO2 libsignal session (`name` is the bare JID).
+@immutable
+class Omemo2StoredSession {
+  const Omemo2StoredSession({
+    required this.name,
+    required this.deviceId,
+    required this.record,
+  });
+
+  final String name;
+  final int deviceId;
+
+  /// Base64 of `SessionRecord.serialize()`.
+  final String record;
+}
+
+/// Serializable OMEMO2 device key material, including active sessions.
 @immutable
 class Omemo2DeviceSnapshot {
   const Omemo2DeviceSnapshot({
@@ -473,6 +525,7 @@ class Omemo2DeviceSnapshot {
     required this.pqSpkSignature,
     required this.opks,
     required this.pqOpks,
+    this.sessions = const [],
   });
 
   factory Omemo2DeviceSnapshot.fromJson(Map<String, dynamic> json) {
@@ -486,6 +539,21 @@ class Omemo2DeviceSnapshot {
         );
       }
       return out;
+    }
+
+    final sessions = <Omemo2StoredSession>[];
+    final rawSessions = json['sessions'];
+    if (rawSessions is List) {
+      for (final item in rawSessions) {
+        if (item is! Map) continue;
+        final name = item['name'];
+        final deviceId = item['deviceId'];
+        final record = item['record'];
+        if (name is! String || deviceId is! int || record is! String) continue;
+        sessions.add(
+          Omemo2StoredSession(name: name, deviceId: deviceId, record: record),
+        );
+      }
     }
 
     return Omemo2DeviceSnapshot(
@@ -502,6 +570,7 @@ class Omemo2DeviceSnapshot {
       pqSpkSignature: json['pqSpkSignature'] as String,
       opks: mapOfMaps(json['opks']),
       pqOpks: mapOfMaps(json['pqOpks']),
+      sessions: sessions,
     );
   }
 
@@ -518,6 +587,7 @@ class Omemo2DeviceSnapshot {
   final String pqSpkSignature;
   final Map<String, Map<String, String>> opks;
   final Map<String, Map<String, String>> pqOpks;
+  final List<Omemo2StoredSession> sessions;
 
   Map<String, dynamic> toJson() => {
     'jid': jid,
@@ -533,5 +603,9 @@ class Omemo2DeviceSnapshot {
     'pqSpkSignature': pqSpkSignature,
     'opks': opks,
     'pqOpks': pqOpks,
+    'sessions': [
+      for (final s in sessions)
+        {'name': s.name, 'deviceId': s.deviceId, 'record': s.record},
+    ],
   };
 }

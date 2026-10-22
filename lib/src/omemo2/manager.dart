@@ -178,6 +178,10 @@ class Omemo2Manager {
         }
       }
 
+      // Same flush as the classic manager: every session this fan-out
+      // created or ratcheted is durable before the stanza goes out.
+      await commitDevice(_device);
+
       return Omemo2EncryptionResult(
         ciphertext: ciphertext,
         commit: commit,
@@ -229,6 +233,7 @@ class Omemo2Manager {
             ciphertext: Uint8List.fromList(key.data),
           );
           final messageKey = await cipher.decrypt(addr, ct);
+          await commitDevice(_device);
           if (!hadSession) {
             newSessions
                 .putIfAbsent(stanza.bareSenderJid, () => [])

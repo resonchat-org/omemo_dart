@@ -181,6 +181,12 @@ class AxolotlOmemoManager {
         }
       }
 
+      // Conversations `storeSession` runs inside encrypt, before the stanza
+      // is sent. Flush every session this fan-out created or ratcheted.
+      // Device-list expiry does not come through here: that only marks the
+      // identity inactive and leaves the session row in place.
+      await commitDevice(_device);
+
       return AxolotlEncryptionResult(
         ciphertext: ciphertext,
         iv: iv,
@@ -244,6 +250,13 @@ class AxolotlOmemoManager {
             keyMaterial = await cipher.decryptFromSignal(signalMsg);
           }
 
+          // SessionRecord (and a consumed one-time prekey) are durable before
+          // the payload is opened. Conversations flushes the same way: the
+          // libsignal store write happens inside decrypt, not after the body
+          // is accepted. A device dropping off the PEP list does not delete
+          // this record; only a key wipe does.
+          await commitDevice(_device);
+
           String? payload;
           if (stanza.payload != null) {
             if (stanza.iv == null) {
@@ -262,7 +275,6 @@ class AxolotlOmemoManager {
             payload = utf8.decode(plain);
           }
 
-          await commitDevice(_device);
           return AxolotlDecryptionResult(
             payload: payload,
             newSessions: newSessions,
