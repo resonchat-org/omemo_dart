@@ -24,6 +24,14 @@ class NoKeyMaterialAvailableError extends OmemoError {
   const NoKeyMaterialAvailableError();
 }
 
+/// A strict outgoing send was missing a recipient's device allow-list.
+///
+/// This is a caller bug or a stale resolution, not a remote-device failure.
+/// It must fail the whole send before any session is created or committed.
+class MissingRecipientDeviceOverrideError extends OmemoError {
+  const MissingRecipientDeviceOverrideError();
+}
+
 /// No session with the sending device.
 class NoSessionWithDeviceError extends OmemoError {
   const NoSessionWithDeviceError();

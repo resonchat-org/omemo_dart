@@ -8,6 +8,7 @@
 /// `Omemo2Manager.onOutgoingStanza` / `Omemo2Manager.onIncomingStanza`.
 library omemo_dart_omemo2;
 
+export 'src/common/errors.dart';
 export 'src/omemo2/address.dart';
 export 'src/omemo2/bootstrap.dart';
 export 'src/omemo2/bundle.dart';

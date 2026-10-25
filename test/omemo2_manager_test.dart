@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:libsignal/libsignal.dart';
 import 'package:omemo_dart/omemo_dart_omemo2.dart';
+import 'package:omemo_dart/src/omemo2/bundle_transcript.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -37,6 +38,36 @@ void main() {
     expect({for (final p in publics) base64Encode(p)}.length, publics.length);
   });
 
+  Future<Omemo2PreKeyBundle> signedBundle(Omemo2Device device) async {
+    final pq = omemo2GenerateMlDsa();
+    final transcript = await device.identityTranscript(pq.publicKey);
+    final pqSig = pq.sign(transcript);
+    final ikSig = await device.sign(transcript);
+    final opk = device.opks.entries.first;
+    final spkRaw = await device.spk.pk.getBytes();
+    final opkRaw = await opk.value.pk.getBytes();
+    return Omemo2PreKeyBundle.fromParts(
+      jid: device.jid,
+      deviceId: device.id,
+      identityPublicTagged: await device.identityPublicSerialized(),
+      signedPreKeyId: device.spkId,
+      signedPreKeyPublicTagged: Uint8List.fromList([0x05, ...spkRaw]),
+      signedPreKeySignature: device.spkSignature,
+      preKeyId: opk.key,
+      preKeyPublicTagged: Uint8List.fromList([0x05, ...opkRaw]),
+      kyberSignedPreKeyId: device.pqSpkId,
+      kyberSignedPreKeyPublicRaw: device.pqSpk,
+      kyberSignedPreKeySignature: device.pqSpkSignature,
+      kyberOneTime: {
+        for (final e in device.pqOpks.entries)
+          e.key: (publicRaw: e.value.publicRaw, signature: e.value.signature),
+      },
+      pqIdentityKey: pq.publicKey,
+      pqSignature: pqSig,
+      ikSignature: ikSig,
+    );
+  }
+
   Future<(Omemo2Manager, Omemo2Manager, Omemo2Device, Omemo2Device)> pair({
     int alicePqOpk = 1,
     int bobPqOpk = 1,
@@ -51,8 +82,8 @@ void main() {
       opkCount: 2,
       pqOpkCount: bobPqOpk,
     );
-    final aliceBundle = await aliceDev.toBundle();
-    final bobBundle = await bobDev.toBundle();
+    final aliceBundle = await signedBundle(aliceDev);
+    final bobBundle = await signedBundle(bobDev);
     Omemo2PreKeyBundle? bundleOf(String jid, int id) {
       if (jid == bobDev.jid && id == bobDev.id) return bobBundle;
       if (jid == aliceDev.jid && id == aliceDev.id) return aliceBundle;
@@ -250,5 +281,93 @@ void main() {
     );
     expect(dec.error, isNotNull);
     expect(dec.payload, isNull);
+  });
+
+  test(
+    'strict override missing a recipient fails before crypto or commit',
+    () async {
+      final aliceDev = await Omemo2Device.generate(
+        'alice@example.org',
+        opkCount: 2,
+        pqOpkCount: 1,
+      );
+      final bobDev = await Omemo2Device.generate(
+        'bob@example.org',
+        opkCount: 2,
+        pqOpkCount: 1,
+      );
+      final bobBundle = await bobDev.toBundle();
+      var bundleFetches = 0;
+      var commits = 0;
+      final alice = Omemo2Manager(
+        aliceDev,
+        fetchDeviceList: (_) async => [bobDev.id],
+        fetchBundle: (_, __) async {
+          bundleFetches++;
+          return bobBundle;
+        },
+        commitDevice: (_) async => commits++,
+      );
+
+      final enc = await alice.onOutgoingStanza(
+        Omemo2OutgoingStanza(
+          recipientJids: [bobDev.jid],
+          payload: utf8.encode('must not go out'),
+          recipientDeviceIds: const <String, Set<int>>{},
+        ),
+      );
+
+      expect(enc.canSend, isFalse);
+      expect(enc.ciphertext, isNull);
+      expect(enc.commit, isNull);
+      expect(enc.encryptedKeys, isEmpty);
+      expect(enc.newSessions, isEmpty);
+      expect(bundleFetches, 0, reason: 'no session may be created');
+      expect(commits, 0, reason: 'no partial commit on prevalidation failure');
+      expect(
+        enc.deviceEncryptionErrors[bobDev.jid]!.single.error,
+        isA<MissingRecipientDeviceOverrideError>(),
+      );
+    },
+  );
+
+  test('strict empty allow-list is authoritative, not a fallback', () async {
+    final aliceDev = await Omemo2Device.generate(
+      'alice@example.org',
+      opkCount: 2,
+      pqOpkCount: 1,
+    );
+    final bobDev = await Omemo2Device.generate(
+      'bob@example.org',
+      opkCount: 2,
+      pqOpkCount: 1,
+    );
+    final bobBundle = await bobDev.toBundle();
+    var bundleFetches = 0;
+    final alice = Omemo2Manager(
+      aliceDev,
+      fetchDeviceList: (_) async => [bobDev.id],
+      fetchBundle: (_, __) async {
+        bundleFetches++;
+        return bobBundle;
+      },
+    );
+
+    final enc = await alice.onOutgoingStanza(
+      Omemo2OutgoingStanza(
+        recipientJids: [bobDev.jid],
+        payload: utf8.encode('nobody'),
+        recipientDeviceIds: {bobDev.jid: <int>{}},
+      ),
+    );
+
+    expect(enc.canSend, isFalse);
+    expect(enc.encryptedKeys, isEmpty);
+    expect(enc.newSessions, isEmpty);
+    expect(bundleFetches, 0, reason: 'empty set must not fall back');
+    expect(
+      enc.deviceEncryptionErrors[bobDev.jid]!.single.error,
+      isA<NoKeyMaterialAvailableError>(),
+    );
   });
 }

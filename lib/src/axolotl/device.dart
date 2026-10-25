@@ -87,9 +87,14 @@ class AxolotlDevice {
   }
 
   /// Ensure at least [count] one-time prekeys exist; returns newly created ids.
+  ///
+  /// This is a top-up, not an append: calling it on every connect must not
+  /// grow the pool (and the published bundle) without bound.
   Future<List<int>> replenishPreKeys(int count) async {
+    final missing = count - store.preKeyStore.store.length;
+    if (missing <= 0) return const [];
     final start = generateRandomOmemoId();
-    final created = generatePreKeys(start, count);
+    final created = generatePreKeys(start, missing);
     final ids = <int>[];
     for (final pk in created) {
       await store.storePreKey(pk.id, pk);

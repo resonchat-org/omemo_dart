@@ -118,6 +118,37 @@ void main() {
     expect(RegExp(r'^[0-9a-f]+$').hasMatch(fp), isTrue);
   });
 
+  test('replenishPreKeys tops up instead of appending every time', () async {
+    final device = await AxolotlDevice.generateNewDevice(
+      'a@b.c',
+      preKeyCount: 2,
+    );
+    expect(device.store.preKeyStore.store.length, 2);
+
+    final added = await device.replenishPreKeys(5);
+    expect(added, hasLength(3));
+    expect(device.store.preKeyStore.store.length, 5);
+
+    final second = await device.replenishPreKeys(5);
+    expect(second, isEmpty);
+    expect(device.store.preKeyStore.store.length, 5);
+  });
+
+  test('published bundle caps historical prekeys', () async {
+    final device = await AxolotlDevice.generateNewDevice(
+      'a@b.c',
+      preKeyCount: axolotlMaxPublishedPreKeyCount + 20,
+    );
+    final manager = AxolotlOmemoManager(
+      device,
+      fetchDeviceList: (_) async => null,
+      fetchBundle: (_, _) async => null,
+    )..trackPreKeyIds(device.store.preKeyStore.store.keys);
+
+    final bundle = await manager.getLocalBundle();
+    expect(bundle.preKeysEncoded, hasLength(axolotlMaxPublishedPreKeyCount));
+  });
+
   test('device snapshot roundtrip preserves identity', () async {
     final device = await AxolotlDevice.generateNewDevice(
       'a@b.c',
@@ -137,7 +168,8 @@ void main() {
     );
     const peer = 'peer@b.c';
     final record = Uint8List.fromList([9, 8, 7, 6]);
-    device.store.sessionStore.sessions[SignalProtocolAddress(peer, 7)] = record;
+    device.store.sessionStore.sessions[const SignalProtocolAddress(peer, 7)] =
+        record;
     final snap = await device.snapshot(
       device.store.preKeyStore.store.keys.toList(),
     );
@@ -145,7 +177,10 @@ void main() {
       AxolotlDeviceSnapshot.fromJson(snap.toJson()),
     );
     expect(
-      restored.store.sessionStore.sessions[SignalProtocolAddress(peer, 7)],
+      restored.store.sessionStore.sessions[const SignalProtocolAddress(
+        peer,
+        7,
+      )],
       record,
     );
     expect(

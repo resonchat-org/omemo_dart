@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:omemo_dart/src/axolotl/bundle.dart';
+import 'package:omemo_dart/src/axolotl/constants.dart';
 import 'package:omemo_dart/src/axolotl/crypto.dart';
 import 'package:omemo_dart/src/axolotl/decryption_result.dart';
 import 'package:omemo_dart/src/axolotl/device.dart';
@@ -297,8 +298,20 @@ class AxolotlOmemoManager {
   }
 
   /// Publishable bundle including tracked prekeys.
-  Future<AxolotlBundle> getLocalBundle() =>
-      _device.toBundle(preKeyIds: _trackedPreKeyIds);
+  ///
+  /// The wire bundle is capped at [axolotlMaxPublishedPreKeyCount]. Accounts
+  /// that accumulated thousands of prekeys under the old append-only
+  /// replenish must not emit a stanza larger than the server accepts.
+  Future<AxolotlBundle> getLocalBundle() {
+    final available = [
+      for (final id in _trackedPreKeyIds)
+        if (_device.store.preKeyStore.store.containsKey(id)) id,
+    ];
+    final selected = available.length <= axolotlMaxPublishedPreKeyCount
+        ? available
+        : available.sublist(available.length - axolotlMaxPublishedPreKeyCount);
+    return _device.toBundle(preKeyIds: selected);
+  }
 
   /// Track newly created prekeys (call after [AxolotlDevice.generateNewDevice]
   /// or [AxolotlDevice.replenishPreKeys]).

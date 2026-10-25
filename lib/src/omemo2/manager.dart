@@ -88,6 +88,36 @@ class Omemo2Manager {
       final ourJid = _device.jid;
       final cipher = _device.sessionCipher();
 
+      // Strict allow-list validation happens before the payload is sealed,
+      // before any session is created or ratcheted, and before commitDevice.
+      // A missing entry is a caller bug: fail the whole send instead of
+      // silently falling back to the announced device list.
+      final overrides = stanza.recipientDeviceIds;
+      if (overrides != null) {
+        final missing = <String>[
+          for (final jid in stanza.recipientJids)
+            if (!overrides.containsKey(jid)) jid,
+        ];
+        if (missing.isNotEmpty) {
+          return Omemo2EncryptionResult(
+            ciphertext: null,
+            commit: null,
+            encryptedKeys: const {},
+            deviceEncryptionErrors: {
+              for (final jid in missing)
+                jid: [
+                  EncryptToJidError(
+                    null,
+                    const MissingRecipientDeviceOverrideError(),
+                  ),
+                ],
+            },
+            newSessions: const {},
+            canSend: false,
+          );
+        }
+      }
+
       late final Uint8List messageKey;
       List<int>? ciphertext;
       List<int>? commit;
@@ -119,7 +149,10 @@ class Omemo2Manager {
       final successes = <String, int>{};
 
       for (final jid in stanza.recipientJids) {
-        final devices = await getDevicesFor(jid);
+        // [overrides] is validated above, so the lookup cannot fail here.
+        final devices = overrides == null
+            ? await getDevicesFor(jid)
+            : overrides[jid]!;
         final targetIds = List<int>.from(devices);
         if (jid == ourJid) {
           targetIds.removeWhere((id) => id == ourId);
