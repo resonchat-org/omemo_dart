@@ -6,13 +6,13 @@
 /// Shares `package:omemo_dart/omemo_dart.dart` helpers/errors with OMEMO2.
 library omemo_dart_axolotl;
 
-export 'src/axolotl/bundle.dart';
-export 'src/axolotl/constants.dart';
-export 'src/axolotl/crypto.dart';
-export 'src/axolotl/decryption_result.dart';
-export 'src/axolotl/device.dart';
-export 'src/axolotl/encrypted_key.dart';
-export 'src/axolotl/encryption_result.dart';
-export 'src/axolotl/fingerprint.dart';
-export 'src/axolotl/manager.dart';
-export 'src/axolotl/stanza.dart';
+export 'package:omemo_dart/src/axolotl/bundle.dart';
+export 'package:omemo_dart/src/axolotl/constants.dart';
+export 'package:omemo_dart/src/axolotl/crypto.dart';
+export 'package:omemo_dart/src/axolotl/decryption_result.dart';
+export 'package:omemo_dart/src/axolotl/device.dart';
+export 'package:omemo_dart/src/axolotl/encrypted_key.dart';
+export 'package:omemo_dart/src/axolotl/encryption_result.dart';
+export 'package:omemo_dart/src/axolotl/fingerprint.dart';
+export 'package:omemo_dart/src/axolotl/manager.dart';
+export 'package:omemo_dart/src/axolotl/stanza.dart';

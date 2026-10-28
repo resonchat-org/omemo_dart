@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:libsignal/libsignal.dart';
+
 import 'package:omemo_dart/omemo_dart_omemo2.dart' show omemo2EnsureLibSignal;
 
 Future<void> main() async {

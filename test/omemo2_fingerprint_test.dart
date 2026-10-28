@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:omemo_dart/omemo_dart_omemo2.dart';
 import 'package:test/test.dart';
+
+import 'package:omemo_dart/omemo_dart_omemo2.dart';
 
 void main() {
   group('hybridOmemo2Fingerprint', () {

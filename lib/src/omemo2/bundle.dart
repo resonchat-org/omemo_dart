@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
+
 import 'package:omemo_dart/src/omemo2/kem_tag.dart';
 
 /// Remote device bundle for monocles OMEMO2 PEP (public halves only).

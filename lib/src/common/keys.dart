@@ -1,9 +1,11 @@
 import 'dart:convert';
+
 import 'package:cryptography/cryptography.dart';
 import 'package:meta/meta.dart';
-import 'package:omemo_dart/src/common/helpers.dart';
 import 'package:pinenacl/api.dart';
 import 'package:pinenacl/tweetnacl.dart';
+
+import 'package:omemo_dart/src/common/helpers.dart';
 
 const privateKeyLength = 32;
 const publicKeyLength = 32;

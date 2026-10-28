@@ -1,8 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:test/test.dart';
+
 import 'package:omemo_dart/src/omemo2/bootstrap.dart';
 import 'package:omemo_dart/src/omemo2/bundle_transcript.dart';
-import 'package:test/test.dart';
 
 void main() {
   setUpAll(omemo2EnsureLibSignal);

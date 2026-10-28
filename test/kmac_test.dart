@@ -1,5 +1,6 @@
-import 'package:omemo_dart/src/omemo2/kmac.dart';
 import 'package:test/test.dart';
+
+import 'package:omemo_dart/src/omemo2/kmac.dart';
 
 void main() {
   // NIST SP 800-185 §A.2 KMAC256 sample #1 (S empty, L = 256).

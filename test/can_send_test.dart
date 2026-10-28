@@ -1,5 +1,6 @@
-import 'package:omemo_dart/omemo_dart.dart';
 import 'package:test/test.dart';
+
+import 'package:omemo_dart/omemo_dart.dart';
 
 void main() {
   const peer = 'peer@example.org';

@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:libsignal/libsignal.dart' as ls;
 import 'package:logging/logging.dart';
+import 'package:synchronized/synchronized.dart';
+
 import 'package:omemo_dart/src/common/can_send.dart';
 import 'package:omemo_dart/src/common/errors.dart';
 import 'package:omemo_dart/src/common/helpers.dart' as helpers;
@@ -12,11 +14,10 @@ import 'package:omemo_dart/src/omemo2/bundle.dart';
 import 'package:omemo_dart/src/omemo2/decryption_result.dart';
 import 'package:omemo_dart/src/omemo2/device.dart';
 import 'package:omemo_dart/src/omemo2/encrypted_key.dart';
-import 'package:omemo_dart/src/omemo2/establish.dart';
 import 'package:omemo_dart/src/omemo2/encryption_result.dart';
+import 'package:omemo_dart/src/omemo2/establish.dart';
 import 'package:omemo_dart/src/omemo2/payload.dart';
 import 'package:omemo_dart/src/omemo2/stanza.dart';
-import 'package:synchronized/synchronized.dart';
 
 /// Fetch remote OMEMO2 device ids for [jid].
 typedef Omemo2FetchDeviceList = Future<List<int>?> Function(String jid);

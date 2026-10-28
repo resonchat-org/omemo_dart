@@ -1,4 +1,5 @@
 import 'package:libsignal/libsignal.dart' as ls;
+
 import 'package:omemo_dart/src/omemo2/address.dart';
 import 'package:omemo_dart/src/omemo2/bundle.dart';
 import 'package:omemo_dart/src/omemo2/bundle_transcript.dart';

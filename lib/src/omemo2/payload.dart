@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+
 import 'package:omemo_dart/src/omemo2/kmac.dart';
 
 /// KMAC customization for payload key/IV derivation (monocles proto-XEP §5.4).

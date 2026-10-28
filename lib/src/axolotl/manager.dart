@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
 import 'package:logging/logging.dart';
+import 'package:synchronized/synchronized.dart';
+
 import 'package:omemo_dart/src/axolotl/bundle.dart';
 import 'package:omemo_dart/src/axolotl/constants.dart';
 import 'package:omemo_dart/src/axolotl/crypto.dart';
@@ -14,7 +16,6 @@ import 'package:omemo_dart/src/axolotl/stanza.dart';
 import 'package:omemo_dart/src/common/can_send.dart';
 import 'package:omemo_dart/src/common/errors.dart';
 import 'package:omemo_dart/src/common/helpers.dart' as helpers;
-import 'package:synchronized/synchronized.dart';
 
 /// Fetch remote device ids for [jid].
 typedef AxolotlFetchDeviceList = Future<List<int>?> Function(String jid);

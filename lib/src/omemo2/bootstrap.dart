@@ -1,4 +1,5 @@
 import 'package:libsignal/libsignal.dart';
+
 import 'package:omemo_dart/src/omemo2/bootstrap_path_stub.dart'
     if (dart.library.io) 'package:omemo_dart/src/omemo2/bootstrap_path_io.dart'
     as path_probe;

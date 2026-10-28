@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+
 import 'package:omemo_dart/src/common/errors.dart';
 import 'package:omemo_dart/src/omemo2/encrypted_key.dart';
 

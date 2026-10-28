@@ -5,7 +5,7 @@
 /// - `package:omemo_dart/omemo_dart_omemo2.dart` (monocles PQ-OMEMO2)
 library omemo_dart;
 
-export 'src/common/can_send.dart';
-export 'src/common/errors.dart';
-export 'src/common/helpers.dart';
-export 'src/common/keys.dart';
+export 'package:omemo_dart/src/common/can_send.dart';
+export 'package:omemo_dart/src/common/errors.dart';
+export 'package:omemo_dart/src/common/helpers.dart';
+export 'package:omemo_dart/src/common/keys.dart';

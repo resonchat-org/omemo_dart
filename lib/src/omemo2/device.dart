@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:libsignal/libsignal.dart' as ls;
 import 'package:meta/meta.dart';
+
 import 'package:omemo_dart/src/common/helpers.dart';
 import 'package:omemo_dart/src/common/keys.dart';
 import 'package:omemo_dart/src/omemo2/address.dart';

@@ -1,7 +1,8 @@
 import 'dart:convert';
 
-import 'package:omemo_dart/omemo_dart_axolotl.dart';
 import 'package:test/test.dart';
+
+import 'package:omemo_dart/omemo_dart_axolotl.dart';
 
 void main() {
   test('AES-128-GCM auth-tag-in-key roundtrip', () async {

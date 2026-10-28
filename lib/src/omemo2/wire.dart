@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
+
 import 'package:omemo_dart/src/omemo2/constants.dart';
 import 'package:omemo_dart/src/omemo2/errors.dart';
 

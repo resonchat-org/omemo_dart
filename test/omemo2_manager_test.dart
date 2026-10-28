@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:libsignal/libsignal.dart';
+import 'package:test/test.dart';
+
 import 'package:omemo_dart/omemo_dart_omemo2.dart';
 import 'package:omemo_dart/src/omemo2/bundle_transcript.dart';
-import 'package:test/test.dart';
 
 void main() {
   setUpAll(() async {

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
 import 'package:meta/meta.dart';
+
 import 'package:omemo_dart/src/axolotl/fingerprint.dart';
 
 /// Remote device bundle for OMEMO 0.3.0 / Conversations PEP.

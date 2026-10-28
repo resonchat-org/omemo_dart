@@ -18,8 +18,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:libsignal_protocol_dart/libsignal_protocol_dart.dart';
-import 'package:omemo_dart/omemo_dart_axolotl.dart';
 import 'package:test/test.dart';
+
+import 'package:omemo_dart/omemo_dart_axolotl.dart';
 
 void main() {
   group('axolotl (Conversations) bundle signature', () {
