@@ -29,8 +29,7 @@ class Omemo2KexAuthEntry {
 
   /// SHA3-512 of [keyBytes] (64 bytes) — the DIGEST field of the transcript.
   Uint8List get digest {
-    final d = SHA3Digest(512);
-    d.update(keyBytes, 0, keyBytes.length);
+    final d = SHA3Digest(512)..update(keyBytes, 0, keyBytes.length);
     final out = Uint8List(64);
     d.doFinal(out, 0);
     return out;

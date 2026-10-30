@@ -17,6 +17,7 @@ import 'package:omemo_dart/src/omemo2/encrypted_key.dart';
 import 'package:omemo_dart/src/omemo2/encryption_result.dart';
 import 'package:omemo_dart/src/omemo2/establish.dart';
 import 'package:omemo_dart/src/omemo2/payload.dart';
+import 'package:omemo_dart/src/omemo2/sce.dart';
 import 'package:omemo_dart/src/omemo2/stanza.dart';
 
 /// Fetch remote OMEMO2 device ids for [jid].
@@ -131,9 +132,15 @@ class Omemo2Manager {
           recipientBareJid: primary,
           sourceDeviceId: ourId,
         );
+        // monocles seals an SCE envelope (XEP-0420), not raw UTF-8 body.
+        final envelope = omemo2BuildSceEnvelope(
+          body: utf8.decode(stanza.payload!),
+          senderBareJid: ourJid,
+          recipientBareJid: primary,
+        );
         final sealed = await omemo2SealPayload(
           messageKey: messageKey,
-          plaintext: stanza.payload!,
+          plaintext: envelope,
           binding: binding,
         );
         ciphertext = sealed.ciphertextWithMac;
@@ -300,8 +307,14 @@ class Omemo2Manager {
             commit: commit,
             binding: binding,
           );
+          final sce = omemo2ParseSceEnvelope(
+            clear,
+            expectedFromBareJid: stanza.bareSenderJid,
+            expectedToBareJid: stanza.recipientBareJid,
+            stanzaTimestamp: stanza.stanzaTimestamp,
+          );
           return Omemo2DecryptionResult(
-            payload: utf8.decode(clear),
+            payload: sce.body,
             newSessions: newSessions,
             error: null,
           );

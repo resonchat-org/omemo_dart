@@ -29,5 +29,6 @@ export 'package:omemo_dart/src/omemo2/kem_tag.dart';
 export 'package:omemo_dart/src/omemo2/kex_auth.dart';
 export 'package:omemo_dart/src/omemo2/manager.dart';
 export 'package:omemo_dart/src/omemo2/payload.dart';
+export 'package:omemo_dart/src/omemo2/sce.dart';
 export 'package:omemo_dart/src/omemo2/stanza.dart';
 export 'package:omemo_dart/src/omemo2/wire.dart';

@@ -10,12 +10,13 @@ class Omemo2IncomingStanza {
     required this.payload,
     this.commit,
     this.isCatchup = false,
+    this.stanzaTimestamp,
   });
 
   final String bareSenderJid;
   final int senderDeviceId;
 
-  /// Our bare JID (context binding for payload AEAD).
+  /// Our bare JID (AEAD context binding + SCE `<to>` check).
   final String recipientBareJid;
 
   final List<Omemo2EncryptedKey> keys;
@@ -27,6 +28,11 @@ class Omemo2IncomingStanza {
   final List<int>? commit;
 
   final bool isCatchup;
+
+  /// Stanza sending time from delay/MAM, or null for live receive time.
+  ///
+  /// Used for SCE `<time>` affix verification (monocles proto-XEP §4.6).
+  final DateTime? stanzaTimestamp;
 }
 
 /// Outgoing plaintext to encrypt for one or more bare JIDs.
@@ -39,7 +45,9 @@ class Omemo2OutgoingStanza {
 
   final List<String> recipientJids;
 
-  /// UTF-8 body bytes, or null for key-transport.
+  /// UTF-8 **message body** bytes (not an SCE envelope), or null for
+  /// key-transport. The manager wraps the body in a monocles SCE envelope
+  /// before AEAD seal.
   final List<int>? payload;
 
   /// Per-JID device allow-list for this send.
